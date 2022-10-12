@@ -105,7 +105,6 @@ def main(args, config):
 
 
     for epoch in range(args.start_epoch, args.end_epoch + 1, world_size):
-        print(epoch + rank)
         if (epoch + rank) < (args.end_epoch + 1):
             pretrain_model = os.path.join(model_prefix, '{}-model.pth'.format(epoch + rank))
             model.load_state_dict(torch.load(pretrain_model, map_location='cpu'))

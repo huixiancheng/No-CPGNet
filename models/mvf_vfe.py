@@ -112,13 +112,10 @@ class AttNet(nn.Module):
         bev_input = VoxelMaxPool(pcds_feat=point_feat_tmp, pcds_ind=pcds_coord.view(BS, N, 3, 1)[:, :, :2].contiguous(), output_size=self.bev_wl_shape, scale_rate=(1.0, 1.0)) #(BS*T, C, H, W)
         bev_input = bev_input.view(BS, -1, self.bev_wl_shape[0], self.bev_wl_shape[1])
 
-        # print(bev_input.shape)
-        # print(self.bev_net)
         bev_feat = self.bev_net(bev_input)
         point_bev_feat = self.bev_grid2point(bev_feat, pcds_cood_cur)
 
         # range-view
-
         point_feat_tmp_cur = point_feat_tmp.view(BS, -1, N, 1).contiguous()
         rv_input = VoxelMaxPool(pcds_feat=point_feat_tmp_cur, pcds_ind=pcds_sphere_coord_cur, output_size=self.rv_shape, scale_rate=(1.0, 1.0))
         rv_feat = self.rv_net(rv_input)
@@ -157,7 +154,6 @@ class AttNet(nn.Module):
 
         pred_cls, pred_bev_cls = self.stage_forward(pcds_xyzi, pcds_coord, pcds_sphere_coord)
 
-        # print(pcds_xyzi_raw.shape)
         pred_cls_raw, pred_bev_cls_raw = self.stage_forward(pcds_xyzi_raw, pcds_coord_raw, pcds_sphere_coord_raw)
 
         loss1 = self.criterion_seg_cate(pred_cls, pcds_target) + 2 * lovasz_softmax(pred_cls, pcds_target, ignore=0)

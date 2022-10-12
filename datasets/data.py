@@ -53,8 +53,6 @@ class DataloadTrain(Dataset):
             self.task_cfg = yaml.load(f)
 
         self.cp_aug = None
-
-
         if config.CopyPasteAug.is_use:
             self.cp_aug = copy_paste.SequenceCutPaste(config.CopyPasteAug.ObjBackDir, config.CopyPasteAug.paste_max_obj_num)
 
@@ -93,7 +91,6 @@ class DataloadTrain(Dataset):
                 pose_diff = current_pose_inv.dot(poses_list[i])
                 self.flist.append((fname_pcd, fname_label, pose_diff, seq_id, file_id))
         print('Training Samples: ', len(self.flist))
-
 
     def form_batch(self, pcds_total):
         #augment pcds
@@ -155,7 +152,6 @@ class DataloadTrain(Dataset):
         pc_raw_label_list = []
         pc_road_list = []
 
-
         fname_pcd, fname_label, pose_diff, _, _ = meta_list
         # load pcd
         pcds_tmp = np.fromfile(fname_pcd, dtype=np.float32).reshape((-1, 4))
@@ -212,8 +208,7 @@ class DataloadTrain(Dataset):
         pcds_xyzi, pcds_coord, pcds_sphere_coord = self.form_batch(pc_list.copy())
         pcds_xyzi_raw, pcds_coord_raw, pcds_sphere_coord_raw = self.form_batch_raw(pc_list.copy())
 
-        # print(pcds_xyzi.shape)
-        # exit()
+
         return pcds_xyzi, pcds_coord, pcds_sphere_coord, pcds_target, pcds_xyzi_raw, pcds_coord_raw, pcds_sphere_coord_raw
 
     def __len__(self):
@@ -232,6 +227,7 @@ class DataloadVal(Dataset):
         seq_num = config.seq_num
         # add training data
         seq_split = [str(i).rjust(2, '0') for i in self.task_cfg['split']['valid']]
+
         for seq_id in seq_split:
             fpath = os.path.join(config.SeqDir, seq_id)
             fpath_pcd = os.path.join(fpath, 'velodyne')
@@ -244,7 +240,6 @@ class DataloadVal(Dataset):
             poses_list = utils.parse_poses(fname_pose, calib)
 
             for i in range(len(poses_list)):
-                self.flist = []
                 current_pose_inv = np.linalg.inv(poses_list[i])
                 file_id = str(i).rjust(6, '0')
                 fname_pcd = os.path.join(fpath_pcd, '{}.bin'.format(file_id))
