@@ -115,9 +115,8 @@ def main(args, config):
 
 
 if __name__ == '__main__':
-    os.environ["CUDA_VISIBLE_DEVICES"] = '2'
     parser = argparse.ArgumentParser(description='lidar segmentation')
-    parser.add_argument('--config', help='config file path', default='config/config_smvf_sgd_ohem_vfe_k1_fp16_48epoch.py', type=str)
+    parser.add_argument('--config', help='config file path', default='config/config_cpg_sgd_ohem_fp16_48epoch.py', type=str)
     parser.add_argument('--local_rank', type=int, default=0)
 
     parser.add_argument('--start_epoch', type=int, default=0)

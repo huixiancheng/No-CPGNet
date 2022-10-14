@@ -170,7 +170,7 @@ def main(args, config):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='lidar segmentation')
-    parser.add_argument('--config', help='config file path', default='config/config_cpg_sgd_ohem_fp16_48epoch.py',type=str)
+    parser.add_argument('--config', help='config file path', default='config/config_cpg_sgd_ohem_fp16_48epoch.py', type=str)
     parser.add_argument('--local_rank', type=int, default=0)
 
     args = parser.parse_args()
