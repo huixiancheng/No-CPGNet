@@ -2,7 +2,7 @@ def get_config():
     class General:
         log_frequency = 100
         name = __name__.rsplit("/")[-1].rsplit(".")[-1]
-        batch_size_per_gpu = 4
+        batch_size_per_gpu = 6
         fp16 = True
         SeqDir = '/home/chx/Work/semantic-kitti/sequences'
         category_list = ["car", "bicycle", "motorcycle", "truck",
@@ -45,7 +45,7 @@ def get_config():
             Voxel = General.Voxel
 
     class ModelParam:
-        prefix = "mvf_vfe.AttNet"
+        prefix = "cpgnet.AttNet"
         Voxel = General.Voxel
         category_list = General.category_list
         class_num = len(category_list) + 1

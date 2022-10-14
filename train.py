@@ -7,7 +7,7 @@ import torch.nn.functional as F
 import argparse
 import time
 import pdb
-
+import shutil
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
@@ -99,6 +99,7 @@ def main(args, config):
     os.system('mkdir -p {}'.format(model_prefix))
 
     # start logging
+    shutil.copyfile('config' + '/' + prefix + ".py", save_path + '/' + prefix + ".py")
     config_logger(os.path.join(save_path, "log.txt"))
     logger = logging.getLogger()
 
@@ -168,9 +169,8 @@ def main(args, config):
 
 
 if __name__ == '__main__':
-    os.environ["CUDA_VISIBLE_DEVICES"] = '0'
     parser = argparse.ArgumentParser(description='lidar segmentation')
-    parser.add_argument('--config', help='config file path', default='config/config_smvf_sgd_ohem_vfe_k1_fp16_48epoch.py',type=str)
+    parser.add_argument('--config', help='config file path', default='config/config_cpg_sgd_ohem_fp16_48epoch.py',type=str)
     parser.add_argument('--local_rank', type=int, default=0)
 
     args = parser.parse_args()
