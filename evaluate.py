@@ -43,7 +43,7 @@ def val_fp16(epoch, model, val_loader, category_list, save_path, rank=0):
         metric_cate = criterion_cate.get_metric()
         string = 'Epoch {}'.format(epoch)
         for key in metric_cate:
-            string = string + '; ' + key + ': ' + str(metric_cate[key] + '\n')
+            string = string + '; ' + key + ': ' + str(metric_cate[key])
         
         f.write(string + '\n')
         f.close()
@@ -115,13 +115,13 @@ def main(args, config):
 
 
 if __name__ == '__main__':
-    os.environ["CUDA_VISIBLE_DEVICES"] = '0'
+    os.environ["CUDA_VISIBLE_DEVICES"] = '2'
     parser = argparse.ArgumentParser(description='lidar segmentation')
-    parser.add_argument('--config', help='config file path', type=str)
+    parser.add_argument('--config', help='config file path', default='config/config_smvf_sgd_ohem_vfe_k1_fp16_48epoch.py', type=str)
     parser.add_argument('--local_rank', type=int, default=0)
 
     parser.add_argument('--start_epoch', type=int, default=0)
-    parser.add_argument('--end_epoch', type=int, default=0)
+    parser.add_argument('--end_epoch', type=int, default=48)
     
     args = parser.parse_args()
     config = importlib.import_module(args.config.replace('.py', '').replace('/', '.'))

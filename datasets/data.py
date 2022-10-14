@@ -68,7 +68,6 @@ class DataloadTrain(Dataset):
                         shift_range=((0, 0), (0, 0), (0, 0)),
                         size_range=(1, 1))
 
-        seq_num = config.seq_num
         # add training data
         seq_split = [str(i).rjust(2, '0') for i in self.task_cfg['split']['train']]
 
@@ -224,7 +223,6 @@ class DataloadVal(Dataset):
         with open('datasets/semantic-kitti.yaml', 'r') as f:
             self.task_cfg = yaml.load(f)
 
-        seq_num = config.seq_num
         # add training data
         seq_split = [str(i).rjust(2, '0') for i in self.task_cfg['split']['valid']]
 

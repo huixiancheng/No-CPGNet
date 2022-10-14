@@ -69,7 +69,7 @@ class AttNet(nn.Module):
         fusion_mode = self.pModel.fusion_mode
 
         point_feat_channels = bev_context_layer[0]
-        bev_context_layer[0] = self.pModel.seq_num * bev_context_layer[0]
+        bev_context_layer[0] = bev_context_layer[0]
 
         # network
         self.point_pre = backbone.PointNetStacker(7, point_feat_channels, pre_bn=True, stack_num=2)

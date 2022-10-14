@@ -69,7 +69,7 @@ class AttNet(nn.Module):
         fusion_mode = self.pModel.fusion_mode
 
         rv_feature_channel0 = rv_context_layer[0]
-        rv_context_layer[0] = rv_context_layer[0] * self.pModel.seq_num
+        rv_context_layer[0] = rv_context_layer[0]
         # network
         self.point_pre = backbone.PointNetStacker(5, rv_feature_channel0, pre_bn=True, stack_num=2)
         self.rv_net = range_view.RVNet(rv_base_block, rv_context_layer, rv_layers, use_att=True)

@@ -2,7 +2,7 @@ def get_config():
     class General:
         log_frequency = 100
         name = __name__.rsplit("/")[-1].rsplit(".")[-1]
-        batch_size_per_gpu = 4
+        batch_size_per_gpu = 2
         fp16 = True
 
         SeqDir = '/home/chx/Work/semantic-kitti/sequences'
@@ -12,26 +12,24 @@ def get_config():
                       "vegetation", "trunk", "terrain", "pole", "traffic-sign"]
 
         loss_mode = 'ohem'
-        K = 1
         class Voxel:
             RV_theta = (-25.0, 3.0)
             range_x = (-50.0, 50.0)
             range_y = (-50.0, 50.0)
             range_z = (-4.0, 2.0)
 
-            bev_shape = (600, 600, 30)
+            bev_shape = (512, 512, 30)
             rv_shape = (64, 2048)
 
     class DatasetParam:
         class Train:
             data_src = 'data'
-            num_workers = 6
+            num_workers = 4
             frame_point_num = 130000
             SeqDir = General.SeqDir
             Voxel = General.Voxel
-            seq_num = General.K + 1
             class CopyPasteAug:
-                is_use = False
+                is_use = True
                 ObjBackDir = 'object_bank_semkitti'
                 paste_max_obj_num = 20
             class AugParam:
@@ -47,15 +45,13 @@ def get_config():
             frame_point_num = 160000
             SeqDir = General.SeqDir
             Voxel = General.Voxel
-            seq_num = General.K + 1
 
     class ModelParam:
-        prefix = "mvf_vfe.AttNet"
+        prefix = "bev_only.AttNet"
         Voxel = General.Voxel
         category_list = General.category_list
         class_num = len(category_list) + 1
         loss_mode = General.loss_mode
-        seq_num = General.K + 1
 
         point_feat_out_channels = 64
         fusion_mode = 'CatFusion'
@@ -66,14 +62,8 @@ def get_config():
             layers = [2, 3, 4]
             bev_grid2point = dict(type='BilinearSample', scale_rate=(0.5, 0.5))
 
-        class RVParam:
-            base_block = 'BasicBlock'
-            context_layers = [64, 32, 64, 128]
-            layers = [2, 3, 4]
-            rv_grid2point = dict(type='BilinearSample', scale_rate=(1.0, 0.5))
-
         class pretrain:
-            pretrain_epoch = 52
+            pretrain_epoch = 26
 
     class OptimizeParam:
         class optimizer:
