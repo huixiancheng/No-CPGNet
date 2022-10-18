@@ -32,6 +32,7 @@ def val_fp16(epoch, model, val_loader, category_list, save_path, rank=0):
         for i, (pcds_xyzi, pcds_coord, pcds_sphere_coord, pcds_target, valid_mask_list, pad_length_list) in tqdm.tqdm(enumerate(val_loader)):
             with torch.cuda.amp.autocast():
                 pred_cls = model.infer(pcds_xyzi.squeeze(0).cuda(), pcds_coord.squeeze(0).cuda(), pcds_sphere_coord.squeeze(0).cuda())
+                # pred_cls = model.infer(pcds_xyzi.cuda(), pcds_coord.cuda(), pcds_sphere_coord.cuda())
             pred_cls = F.softmax(pred_cls, dim=1)
             pred_cls = pred_cls.mean(dim=0).permute(2, 1, 0).squeeze(0).contiguous()
             pcds_target = pcds_target[0, :, 0].contiguous()
@@ -56,8 +57,8 @@ def val(epoch, model, val_loader, category_list, save_path, rank=0):
     f = open(os.path.join(save_path, 'record_{}.txt'.format(rank)), 'a')
     with torch.no_grad():
         for i, (pcds_xyzi, pcds_coord, pcds_sphere_coord, pcds_target, valid_mask_list, pad_length_list) in tqdm.tqdm(enumerate(val_loader)):
-            pred_cls = model.infer(pcds_xyzi.squeeze(0).cuda(), pcds_coord.squeeze(0).cuda(),\
-                pcds_sphere_coord.squeeze(0).cuda())
+            pred_cls = model.infer(pcds_xyzi.squeeze(0).cuda(), pcds_coord.squeeze(0).cuda(), pcds_sphere_coord.squeeze(0).cuda())
+            # pred_cls = model.infer(pcds_xyzi.cuda(), pcds_coord.cuda(),pcds_sphere_coord.cuda())
             
             pred_cls = F.softmax(pred_cls, dim=1)
             pred_cls = pred_cls.mean(dim=0).permute(2, 1, 0).squeeze(0).contiguous()
@@ -113,10 +114,22 @@ def main(args, config):
             else:
                 val(epoch + rank, model, val_loader, pGen.category_list, save_path, rank)
 
+def seed_torch(seed=1024):
+    import random
+    import numpy as np
+    random.seed(seed)
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)  # if you are using multi-GPU.
+    torch.backends.cudnn.deterministic = False
+    print("We use the seed: {}".format(seed))
 
 if __name__ == '__main__':
+    seed_torch(seed=520)
     parser = argparse.ArgumentParser(description='lidar segmentation')
-    parser.add_argument('--config', help='config file path', default='config/config_cpg_sgd_ohem_fp16_48epoch.py', type=str)
+    parser.add_argument('--config', help='config file path', default='config/ohem.py', type=str)
     parser.add_argument('--local_rank', type=int, default=0)
 
     parser.add_argument('--start_epoch', type=int, default=0)

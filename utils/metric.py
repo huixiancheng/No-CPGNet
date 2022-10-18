@@ -50,8 +50,8 @@ class MultiClassMetric:
         
         for i, cate in enumerate(self.Classes):
             result_dic[cate + ' iou'] = iou[i]
-            result_dic[cate + ' pre'] = pre[i]
-            result_dic[cate + ' rec'] = rec[i]
+            # result_dic[cate + ' pre'] = pre[i]
+            # result_dic[cate + ' rec'] = rec[i]
         
         result_dic['mean iou'] = iou.mean()
         self.reset()

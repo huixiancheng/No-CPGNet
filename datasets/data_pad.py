@@ -346,6 +346,7 @@ class DataloadVal(Dataset):
 
         # preprocess
         pcds_xyzi, pcds_coord, pcds_sphere_coord = self.form_batch_tta(pc_list.copy())
+        # pcds_xyzi, pcds_coord, pcds_sphere_coord = self.form_batch(pc_list.copy())
 
         return pcds_xyzi, pcds_coord, pcds_sphere_coord, pcds_target, valid_mask_list, pad_length_list
 

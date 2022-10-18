@@ -39,7 +39,7 @@ def get_config():
 
         class Val:
             data_src = 'data_pad'
-            num_workers = 4
+            num_workers = 8
             frame_point_num = 160000
             SeqDir = General.SeqDir
             Voxel = General.Voxel
