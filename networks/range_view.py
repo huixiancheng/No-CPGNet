@@ -80,16 +80,19 @@ class RVNet(nn.Module):
         super(RVNet, self).__init__()
         #encoder
         self.header = self._make_layer(eval('backbone.{}'.format(base_block)), context_layers[0], context_layers[1], layers[0], stride=(1, 2), dilation=1, use_att=use_att)
-        self.res1 = self._make_layer(eval('backbone.{}'.format(base_block)), context_layers[1], context_layers[2], layers[1], stride=2, dilation=1, use_att=use_att)
-        self.res2 = self._make_layer(eval('backbone.{}'.format(base_block)), context_layers[2], context_layers[3], layers[2], stride=2, dilation=1, use_att=use_att)
+        self.res1 = self._make_layer(eval('backbone.{}'.format(base_block)), context_layers[1], context_layers[2], layers[1], stride=(1, 2), dilation=1, use_att=use_att)
+        self.res2 = self._make_layer(eval('backbone.{}'.format(base_block)), context_layers[2], context_layers[3], layers[2], stride=(1, 2), dilation=1, use_att=use_att)
 
         #decoder
         fusion_channels2 = context_layers[3] + context_layers[2]
-        self.up2 = AttMerge(context_layers[2], context_layers[3], fusion_channels2 // 2, scale_factor=2)
+        self.up2 = AttMerge(context_layers[2], context_layers[3], fusion_channels2 // 2, scale_factor=(1, 2))
         
         fusion_channels1 = fusion_channels2 // 2 + context_layers[1]
-        self.up1 = AttMerge(context_layers[1], fusion_channels2 // 2, fusion_channels1 // 2, scale_factor=2)
-        
+        self.up1 = AttMerge(context_layers[1], fusion_channels2 // 2, fusion_channels1 // 2, scale_factor=(1, 2))
+
+        fusion_channels0 = fusion_channels1 // 2 + context_layers[0]
+        self.up0 = AttMerge(context_layers[0], fusion_channels1 // 2, fusion_channels0 // 2, scale_factor=(1, 2))
+
         self.out_channels = fusion_channels1 // 2
     
     def _make_layer(self, block, in_planes, out_planes, num_blocks, stride=1, dilation=1, use_att=True):
@@ -111,5 +114,6 @@ class RVNet(nn.Module):
         
         #decoder
         x_merge1 = self.up2(x1, x2)
-        x_merge = self.up1(x0, x_merge1)
+        x_merge0 = self.up1(x0, x_merge1)
+        x_merge = self.up0(x, x_merge0)
         return x_merge

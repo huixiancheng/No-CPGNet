@@ -90,20 +90,18 @@ class AttNet(nn.Module):
         Output:
             point_feat_out (BS, C1, N, 1)
         '''
-        BS, T, C, N, _ = point_feat.shape
-
-        pcds_cood_cur = pcds_coord[:, 0, :, :2].contiguous()
-        pcds_sphere_coord_cur = pcds_sphere_coord[:, 0].contiguous()
+        BS, C, N, _ = point_feat.shape
+        pcds_cood_cur = pcds_coord[:, :, :2].contiguous()
 
         # BEV
-        point_feat_tmp = self.point_pre(point_feat.view(BS*T, C, N, 1))
-        bev_input = VoxelMaxPool(pcds_feat=point_feat_tmp, pcds_ind=pcds_coord.view(BS*T, N, 3, 1)[:, :, :2].contiguous(), output_size=self.bev_wl_shape, scale_rate=(1.0, 1.0)) #(BS*T, C, H, W)
-        bev_input = bev_input.view(BS, -1, self.bev_wl_shape[0], self.bev_wl_shape[1])
+        point_feat_tmp = self.point_pre(point_feat)
+        bev_input = VoxelMaxPool(pcds_feat=point_feat_tmp, pcds_ind=pcds_coord[:, :, :2].contiguous(), output_size=self.bev_wl_shape, scale_rate=(1.0, 1.0)) #(BS, C, H, W)
+
         bev_feat = self.bev_net(bev_input)
         point_bev_feat = self.bev_grid2point(bev_feat, pcds_cood_cur)
 
         # merge multi-view
-        point_feat_tmp_cur = point_feat_tmp.view(BS, T, -1, N, 1)[:, 0].contiguous()
+        point_feat_tmp_cur = point_feat_tmp
         point_feat_out = self.point_post(point_feat_tmp_cur, point_bev_feat)
 
         # pred
@@ -134,8 +132,8 @@ class AttNet(nn.Module):
         pred_cls = self.stage_forward(pcds_xyzi, pcds_coord, pcds_sphere_coord)
         pred_cls_raw = self.stage_forward(pcds_xyzi_raw, pcds_coord_raw, pcds_sphere_coord_raw)
 
-        loss1 = self.criterion_seg_cate(pred_cls, pcds_target) + 3 * lovasz_softmax(pred_cls, pcds_target, ignore=0)
-        loss2 = self.criterion_seg_cate(pred_cls_raw, pcds_target) + 3 * lovasz_softmax(pred_cls_raw, pcds_target, ignore=0)
+        loss1 = self.criterion_seg_cate(pred_cls, pcds_target) + 2 * lovasz_softmax(pred_cls, pcds_target, ignore=0)
+        loss2 = self.criterion_seg_cate(pred_cls_raw, pcds_target) + 2 * lovasz_softmax(pred_cls_raw, pcds_target, ignore=0)
         loss3 = self.consistency_loss_l1(pred_cls, pred_cls_raw)
 
         loss = 0.5 * (loss1 + loss2) + loss3

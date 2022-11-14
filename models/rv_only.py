@@ -89,19 +89,17 @@ class AttNet(nn.Module):
         Output:
             point_feat_out (BS, C1, N, 1)
         '''
-        BS, T, C, N, _ = point_feat.shape
-
-        pcds_sphere_coord_cur = pcds_sphere_coord[:, 0].contiguous()
+        BS, C, N, _ = point_feat.shape
+        pcds_sphere_coord_cur = pcds_sphere_coord.contiguous()
 
         # range-view
-        point_feat_tmp = self.point_pre(point_feat.view(BS*T, C, N, 1))
-        rv_input = VoxelMaxPool(pcds_feat=point_feat_tmp, pcds_ind=pcds_sphere_coord.view(BS*T, N, 2, 1), output_size=self.rv_shape, scale_rate=(1.0, 1.0))
-        rv_input = rv_input.view(BS, -1, self.rv_shape[0], self.rv_shape[1])
+        point_feat_tmp = self.point_pre(point_feat)
+        rv_input = VoxelMaxPool(pcds_feat=point_feat_tmp, pcds_ind=pcds_sphere_coord, output_size=self.rv_shape, scale_rate=(1.0, 1.0))
         rv_feat = self.rv_net(rv_input)
         point_rv_feat = self.rv_grid2point(rv_feat, pcds_sphere_coord_cur)
 
         # merge multi-view
-        point_feat_tmp_cur = point_feat_tmp.view(BS, T, -1, N, 1)[:, 0].contiguous()
+        point_feat_tmp_cur = point_feat_tmp
         point_feat_out = self.point_post(point_feat_tmp_cur, point_rv_feat)
         
         # pred
@@ -129,8 +127,8 @@ class AttNet(nn.Module):
         Output:
             loss
         '''
-        pcds_xyzi = pcds_xyzi[:, :, :5].contiguous()
-        pcds_xyzi_raw = pcds_xyzi_raw[:, :, :5].contiguous()
+        pcds_xyzi = pcds_xyzi[:, :5, :].contiguous()
+        pcds_xyzi_raw = pcds_xyzi_raw[:, :5, :].contiguous()
 
         pred_cls = self.stage_forward(pcds_xyzi, pcds_coord, pcds_sphere_coord)
         pred_cls_raw = self.stage_forward(pcds_xyzi_raw, pcds_coord_raw, pcds_sphere_coord_raw)
@@ -151,6 +149,6 @@ class AttNet(nn.Module):
         Output:
             pred_cls, (BS, C, N, 1)
         '''
-        pcds_xyzi = pcds_xyzi[:, :, :5].contiguous()
+        pcds_xyzi = pcds_xyzi[:, :5, :].contiguous()
         pred_cls = self.stage_forward(pcds_xyzi, pcds_coord, pcds_sphere_coord)
         return pred_cls

@@ -103,20 +103,18 @@ class AttNet(nn.Module):
             point_feat_out (BS, C1, N, 1)
         '''
         BS, C, N, _ = point_feat.shape
-
         pcds_cood_cur = pcds_coord[:, :, :2].contiguous()
         pcds_sphere_coord_cur = pcds_sphere_coord.contiguous()
 
         # BEV
-        point_feat_tmp = self.point_pre(point_feat.view(BS, C, N, 1))
-        bev_input = VoxelMaxPool(pcds_feat=point_feat_tmp, pcds_ind=pcds_coord.view(BS, N, 3, 1)[:, :, :2].contiguous(), output_size=self.bev_wl_shape, scale_rate=(1.0, 1.0)) #(BS*T, C, H, W)
-        bev_input = bev_input.view(BS, -1, self.bev_wl_shape[0], self.bev_wl_shape[1])
+        point_feat_tmp = self.point_pre(point_feat)
+        bev_input = VoxelMaxPool(pcds_feat=point_feat_tmp, pcds_ind=pcds_coord[:, :, :2].contiguous(), output_size=self.bev_wl_shape, scale_rate=(1.0, 1.0)) #(BS, C, H, W)
 
         bev_feat = self.bev_net(bev_input)
         point_bev_feat = self.bev_grid2point(bev_feat, pcds_cood_cur)
 
         # range-view
-        point_feat_tmp_cur = point_feat_tmp.view(BS, -1, N, 1).contiguous()
+        point_feat_tmp_cur = point_feat_tmp
         rv_input = VoxelMaxPool(pcds_feat=point_feat_tmp_cur, pcds_ind=pcds_sphere_coord_cur, output_size=self.rv_shape, scale_rate=(1.0, 1.0))
         rv_feat = self.rv_net(rv_input)
         point_rv_feat = self.rv_grid2point(rv_feat, pcds_sphere_coord_cur)
