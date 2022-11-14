@@ -4,8 +4,13 @@
 ![pipeline](assert/CPGNet.png)
 
 - ~~This is **N**on-**O**fficial implementation of [CPGNet](https://arxiv.org/abs/2204.09914).~~ Just a simple try and just simple reproduction based on [SMVF](https://github.com/GangZhang842/SMVF). :joy::joy::joy:
-- Waiting for training results. :sleeping: :zzz:
 - Here is the official [Repo](https://github.com/GangZhang842/CPGNet).
+
+## New Fix:
+- Find that the down-sampling and upsampling stages is not same with the paper. I think this will affect performance. 
+- However, changing to the correct setting will result in more GPU memory consumption. (Feature map is twice as big)
+- Also, CosineAnnealingWarmUpRestarts look better than StepLR.
+- Waiting for training results. :sleeping: :zzz:
 
 ## Environment Setup
 Please refer to [SMVF](https://github.com/GangZhang842/SMVF) repo. ~~**Note:** Make sure deep_point is installed.~~

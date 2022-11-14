@@ -45,7 +45,7 @@ def get_config():
             Voxel = General.Voxel
 
     class ModelParam:
-        prefix = "cpgnet.AttNet"
+        prefix = "bev_only.AttNet"
         Voxel = General.Voxel
         category_list = General.category_list
         class_num = len(category_list) + 1
@@ -58,32 +58,40 @@ def get_config():
             base_block = 'BasicBlock'
             context_layers = [64, 32, 64, 128]
             layers = [2, 3, 4]
-            bev_grid2point = dict(type='BilinearSample', scale_rate=(1.0, 1.0))
-
-        class RVParam:
-            base_block = 'BasicBlock'
-            context_layers = [64, 32, 64, 128]
-            layers = [2, 3, 4]
-            rv_grid2point = dict(type='BilinearSample', scale_rate=(1.0, 1.0))
+            bev_grid2point = dict(type='BilinearSample', scale_rate=(0.5, 0.5))
 
         class pretrain:
             pretrain_epoch = 52
 
+    # class OptimizeParam:
+    #     class optimizer:
+    #         type = "sgd"
+    #         base_lr = 0.02
+    #         momentum = 0.9
+    #         nesterov = True
+    #         wd = 1e-3
+    #
+    #     class schedule:
+    #         type = "step"
+    #         begin_epoch = 0
+    #         end_epoch = 48
+    #         pct_start = 0.01
+    #         final_lr = 1e-6
+    #         step = 10
+    #         decay_factor = 0.1
+
     class OptimizeParam:
         class optimizer:
             type = "sgd"
-            base_lr = 0.02
+            base_lr = 0.00002
             momentum = 0.9
             nesterov = True
             wd = 1e-3
 
         class schedule:
-            type = "step"
+            type = "cosine"
             begin_epoch = 0
             end_epoch = 48
-            pct_start = 0.01
-            final_lr = 1e-6
-            step = 10
-            decay_factor = 0.1
+            max_lr = 0.02
 
     return General, DatasetParam, ModelParam, OptimizeParam
