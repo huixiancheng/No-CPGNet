@@ -49,7 +49,7 @@ Models have been uploaded to this [Google Drive folder](https://drive.google.com
 
 **Note:** 
 - Our model is trained using 1/4 of the data. See [here of code](https://github.com/huixiancheng/No-CPGNet/blob/main/datasets/data.py#L91).
-- We did not use TTA, which actually slightly improved performance by about 1.0%.
+- We did not use TTA, which actually slightly improved performance by about 1.0%. If want to enable it, comment [here](https://github.com/huixiancheng/No-CPGNet/blob/main/evaluate.py#L34-L35) and [here](https://github.com/huixiancheng/No-CPGNet/blob/main/datasets/data.py#L268-L269).
 
 Below are known issues listed:
 - Over-fitting on the validation set, the model with 64.9mIoU on the validation set achieved only 61.8mIoU on the CodaLab online test set. (Probably because we only use 1/4 of the data for training)

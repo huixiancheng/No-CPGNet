@@ -265,6 +265,7 @@ class DataloadVal(Dataset):
         # load history pcds
         pc, pc_label, fname_pcd = self.form_seq(meta_list)
 
+        # pcds_xyzi, pcds_coord, pcds_sphere_coord = self.form_batch_tta(pc.copy())
         pcds_xyzi, pcds_coord, pcds_sphere_coord = self.form_batch(pc.copy())
         return pcds_xyzi, pcds_coord, pcds_sphere_coord, pcds_target, fname_pcd
 
