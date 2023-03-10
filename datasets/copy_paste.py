@@ -24,19 +24,19 @@ def compute_box_3d(center, size, yaw):
     R = np.array([[c, -s, 0],
                   [s, c, 0],
                   [0, 0, 1]])
-    
+
     # 3d bounding box dimensions
     l = size[0]
     w = size[1]
     h = size[2]
-    
+
     # 3d bounding box corners
     x_corners = [l / 2, l / 2, -l / 2, -l / 2, l / 2, l / 2, -l / 2, -l / 2]
     y_corners = [w / 2, -w / 2, -w / 2, w / 2, w / 2, -w / 2, -w / 2, w / 2]
     z_corners = [h / 2, h / 2, h / 2, h / 2, -h / 2, -h / 2, -h / 2, -h / 2]
     # rotate and translate 3d bounding box
     corners_3d = np.dot(R, np.vstack([x_corners, y_corners, z_corners]))
-    
+
     corners_3d[0, :] = corners_3d[0, :] + center[0]
     corners_3d[1, :] = corners_3d[1, :] + center[1]
     corners_3d[2, :] = corners_3d[2, :] + center[2]
@@ -56,7 +56,12 @@ def random_f(r):
 class SequenceCutPaste:
     def __init__(self, object_dir, paste_max_obj_num):
         self.object_dir = object_dir
-        self.sub_dirs = ('other-vehicle', 'truck', 'car', 'motorcyclist', 'motorcycle', 'person', 'bicycle', 'bicyclist')
+
+        # self.sub_dirs = ("car", "bicycle", "motorcycle", "truck", "other-vehicle", "person", "bicyclist", "motorcyclist")
+        # self.sun_labels = (1, 2, 3, 4, 5, 6, 7, 8)
+
+        self.sub_dirs = ('other-vehicle', 'truck', 'motorcyclist', 'motorcycle', 'person', 'bicycle', 'bicyclist')
+        self.sub_labels = (5, 4, 8, 3, 6, 2, 7)
         '''
         other-vehicle: 7014
         bicycle: 4063
@@ -75,16 +80,17 @@ class SequenceCutPaste:
         self.velo_range_dic['person'] = (-3, 3)
         self.velo_range_dic['bicycle'] = (-8, 8)
         self.velo_range_dic['bicyclist'] = (-8, 8)
-        
+
         self.sub_dirs_dic = {}
         for fp in self.sub_dirs:
             fpath = os.path.join(self.object_dir, fp)
-            fname_list = [os.path.join(fpath, x) for x in os.listdir(fpath) if (x.endswith('.npz')) and (x.split('_')[0] != '08')]
+            fname_list = [os.path.join(fpath, x) for x in os.listdir(fpath) if
+                          (x.endswith('.npz')) and (x.split('_')[0] != '08')]
             print('Load {0}: {1}'.format(fp, len(fname_list)))
             self.sub_dirs_dic[fp] = fname_list
-        
+
         self.paste_max_obj_num = paste_max_obj_num
-    
+
     def get_random_rotate_along_z_obj(self, pcds_obj, bbox_corners, theta):
         pcds_obj_result = rotate_along_z(pcds_obj, theta)
         bbox_corners_result = rotate_along_z(bbox_corners, theta)
@@ -113,7 +119,7 @@ class SequenceCutPaste:
 
         fov_mask = in_range(phi, phi_fov) * in_range(theta, theta_fov)
         return fov_mask
-    
+
     def make_sequential_obj(self, fname_npz, seq_num):
         npkl = np.load(fname_npz)
 
@@ -145,29 +151,32 @@ class SequenceCutPaste:
             bbox_corners_tmp[:, 1] -= velo_y * t * 0.1
 
             pc_object_list.append((pcds_obj_tmp, bbox_corners_tmp))
-        
+
         return pc_object_list, np.abs(velo)
-    
+
     def get_random_rotate_along_z_obj_list(self, pc_object_list, theta):
         result_pc_object_list = []
         for i in range(len(pc_object_list)):
-            result_pc_object_list.append(self.get_random_rotate_along_z_obj(pc_object_list[i][0], pc_object_list[i][1], theta))
+            result_pc_object_list.append(
+                self.get_random_rotate_along_z_obj(pc_object_list[i][0], pc_object_list[i][1], theta))
         return result_pc_object_list
-    
+
     def valid_position(self, pcds, pcds_raw_label, pcds_obj):
         # get object fov
         u_fov, phi_fov, theta_fov = self.get_fov(pcds_obj)
-        if (abs(u_fov[1] - u_fov[0]) < 8) and (abs(phi_fov[1] - phi_fov[0]) < 1) and (abs(theta_fov[1] - theta_fov[0]) < 1):
+        if (abs(u_fov[1] - u_fov[0]) < 8) and (abs(phi_fov[1] - phi_fov[0]) < 1) and (
+                abs(theta_fov[1] - theta_fov[0]) < 1):
             # get valid fov
             fov_mask = self.occlusion_process(pcds, phi_fov, theta_fov)
-            in_fov_obj_mask = in_range(pcds_raw_label[fov_mask], (10, 33)) + in_range(pcds_raw_label[fov_mask], (252, 260))
-            if(in_fov_obj_mask.sum() < 3):
+            in_fov_obj_mask = in_range(pcds_raw_label[fov_mask], (10, 33)) + in_range(pcds_raw_label[fov_mask],
+                                                                                      (252, 260))
+            if (in_fov_obj_mask.sum() < 3):
                 return True, fov_mask
             else:
                 return False, fov_mask
         else:
             return False, None
-    
+
     def paste_single_obj(self, pcds_list, pcds_label_list, pcds_road_list, pcds_raw_label_list):
         '''
         Input:
@@ -180,21 +189,18 @@ class SequenceCutPaste:
             pcds_label_list, list of (N,)
             pcds_raw_label_list, list of (N,)
         '''
-        cate = random.choice(self.sub_dirs)
+        idx = random.randrange(len(self.sub_dirs))
+        cate = self.sub_dirs[idx]
+        paste_label = self.sub_labels[idx]
+        # print(cate, paste_label)
+
+        # cate = random.choice(self.sub_dirs)
         fname_npz = random.choice(self.sub_dirs_dic[cate])
-        
         pc_object_list, obj_velo = self.make_sequential_obj(fname_npz, seq_num=len(pcds_list))
-        motion_label = 0
-        if obj_velo >= 1:
-            motion_label = 2
-        elif obj_velo < 0.3:
-            motion_label = 1
-        else:
-            motion_label = 0
-        
-        if(len(pc_object_list[0][0]) < 10):
+
+        if (len(pc_object_list[0][0]) < 10):
             return pcds_list, pcds_label_list, pcds_raw_label_list
-        
+
         theta_list = np.arange(0, 360, 18).tolist()
         np.random.shuffle(theta_list)
         for theta in theta_list:
@@ -213,13 +219,15 @@ class SequenceCutPaste:
             else:
                 # object is not on road
                 continue
-            
+
             # get object list fov
-            valid_position_list = [self.valid_position(pcds_list[ht], pcds_raw_label_list[ht], pc_object_aug_list[ht][0]) for ht in range(len(pc_object_aug_list))]
+            valid_position_list = [
+                self.valid_position(pcds_list[ht], pcds_raw_label_list[ht], pc_object_aug_list[ht][0]) for ht in
+                range(len(pc_object_aug_list))]
             valid_flag = True
             for ht in range(len(pc_object_aug_list)):
                 valid_flag = valid_flag & valid_position_list[ht][0]
-            
+
             if valid_flag:
                 # add object back
                 for ht in range(len(pc_object_aug_list)):
@@ -232,24 +240,29 @@ class SequenceCutPaste:
                     pcds_raw_label_filter_ht = pcds_raw_label_list[ht][~fov_mask]
 
                     pcds_obj_aug_ht = pc_object_aug_list[ht][0]
-                    pcds_addobj_label_ht = np.full((pcds_obj_aug_ht.shape[0],), fill_value=motion_label, dtype=pcds_label_filter_ht.dtype)
-                    pcds_addobj_raw_label_ht = np.full((pcds_obj_aug_ht.shape[0],), fill_value=30, dtype=pcds_raw_label_filter_ht.dtype)
+                    pcds_addobj_label_ht = np.full((pcds_obj_aug_ht.shape[0], 1), fill_value=paste_label,
+                                                   dtype=pcds_label_filter_ht.dtype)
+                    # print(pcds_addobj_label_ht[0], pcds_addobj_label_ht.shape)
+                    pcds_addobj_raw_label_ht = np.full((pcds_obj_aug_ht.shape[0],), fill_value=30,
+                                                       dtype=pcds_raw_label_filter_ht.dtype)
 
                     pcds_list[ht] = np.concatenate((pcds_filter_ht, pcds_obj_aug_ht), axis=0)
                     pcds_label_list[ht] = np.concatenate((pcds_label_filter_ht, pcds_addobj_label_ht), axis=0)
-                    pcds_raw_label_list[ht] = np.concatenate((pcds_raw_label_filter_ht, pcds_addobj_raw_label_ht), axis=0)
+                    pcds_raw_label_list[ht] = np.concatenate((pcds_raw_label_filter_ht, pcds_addobj_raw_label_ht),
+                                                             axis=0)
                 break
             else:
                 continue
-        
+
         return pcds_list, pcds_label_list, pcds_raw_label_list
-    
+
     def __call__(self, pcds_list, pcds_label_list, pcds_road_list, pcds_raw_label_list):
         paste_obj_num = random.randint(0, self.paste_max_obj_num)
         if paste_obj_num == 0:
             return pcds_list, pcds_label_list
         else:
             for i in range(paste_obj_num):
-                pcds_list, pcds_label_list, pcds_raw_label_list = self.paste_single_obj(pcds_list, pcds_label_list, pcds_road_list, pcds_raw_label_list)
-            
+                pcds_list, pcds_label_list, pcds_raw_label_list = self.paste_single_obj(pcds_list, pcds_label_list,
+                                                                                        pcds_road_list,
+                                                                                        pcds_raw_label_list)
             return pcds_list, pcds_label_list

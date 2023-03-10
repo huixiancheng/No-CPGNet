@@ -27,7 +27,7 @@ def get_config():
             SeqDir = General.SeqDir
             Voxel = General.Voxel
             class CopyPasteAug:
-                is_use = False
+                is_use = True
                 ObjBackDir = 'object_bank_semkitti'
                 paste_max_obj_num = 20
             class AugParam:
@@ -38,9 +38,9 @@ def get_config():
                 size_range = (0.95, 1.05)
 
         class Val:
-            data_src = 'data_pad'
+            data_src = 'data'
             num_workers = 8
-            frame_point_num = 160000
+            frame_point_num = 130000
             SeqDir = General.SeqDir
             Voxel = General.Voxel
 
@@ -52,7 +52,9 @@ def get_config():
         loss_mode = General.loss_mode
 
         point_feat_out_channels = 64
-        fusion_mode = 'CatFusion'
+        fusion_mode = 'MLPFusion'
+        fusion_way = 'Cat'
+
 
         class BEVParam:
             base_block = 'BasicBlock'
@@ -69,21 +71,35 @@ def get_config():
         class pretrain:
             pretrain_epoch = 52
 
+    # class OptimizeParam:
+    #     class optimizer:
+    #         type = "sgd"
+    #         base_lr = 0.02
+    #         momentum = 0.9
+    #         nesterov = True
+    #         wd = 1e-3
+    #
+    #     class schedule:
+    #         type = "step"
+    #         begin_epoch = 0
+    #         end_epoch = 48
+    #         pct_start = 0.01
+    #         final_lr = 1e-6
+    #         step = 10
+    #         decay_factor = 0.1
+
     class OptimizeParam:
         class optimizer:
             type = "sgd"
-            base_lr = 0.02
+            base_lr = 0.00002
             momentum = 0.9
             nesterov = True
             wd = 1e-3
 
         class schedule:
-            type = "step"
+            type = "cosine"
             begin_epoch = 0
-            end_epoch = 48
-            pct_start = 0.01
-            final_lr = 1e-6
-            step = 10
-            decay_factor = 0.1
+            end_epoch = 50
+            max_lr = 0.02
 
     return General, DatasetParam, ModelParam, OptimizeParam

@@ -6,9 +6,11 @@ import pdb
 
 act_layer = nn.ReLU(inplace=True)
 
+
 def conv3x3(in_planes, out_planes, stride=1, dilation=1, bias=False):
     """3x3 convolution with padding"""
-    return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride, padding=dilation, dilation=dilation, bias=bias)
+    return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride, padding=dilation, dilation=dilation,
+                     bias=bias)
 
 
 class DownSample2D(nn.Module):
@@ -43,60 +45,19 @@ def get_module(param_dic, **kwargs):
     return result_module
 
 
-class TConv(nn.Module):
-    def __init__(self, T, cin, cout):
-        super(TConv, self).__init__()
-        self.T = T
-        self.cin = cin
-        self.cout = cout
-        self.conv_t = nn.Sequential(
-            nn.Conv2d(cin, cout, kernel_size=(3, 1), stride=1, padding=0, dilation=1, bias=False),
-            nn.BatchNorm2d(cout),
-            act_layer
-        )
-
-    def forward(self, x):
-        BS_T, C, H, W = x.shape
-        BS = BS_T // self.T
-
-        x_out = self.conv_t(x.view(BS, self.T, C, H, W).transpose(1, 2).contiguous().view(BS, C, self.T, H*W))
-        x_out = x_out.transpose(1, 2).contiguous().view(-1, self.cout, H, W)
-        return x_out
-
-
-class TConcat(nn.Module):
-    def __init__(self, T, cin, cout):
-        super(TConcat, self).__init__()
-        self.T = T
-        self.cin = cin
-        self.cout = cout
-        self.conv_tcat = nn.Sequential(
-            nn.Conv2d(cin * T, cout, kernel_size=1, stride=1, padding=0, dilation=1, bias=False),
-            nn.BatchNorm2d(cout),
-            act_layer
-        )
-
-    def forward(self, x):
-        BS_T, C, H, W = x.shape
-        BS = BS_T // self.T
-
-        x_out = self.conv_tcat(x.view(BS, self.T * C, H, W))
-        return x_out
-
-
 class ChannelAtt(nn.Module):
     def __init__(self, channels, reduction=4):
         super(ChannelAtt, self).__init__()
         self.cnet = nn.Sequential(
-                nn.AdaptiveAvgPool2d(output_size=1),
-                nn.Conv2d(channels, channels // reduction, kernel_size=1, padding=0),
-                act_layer,
-                nn.Conv2d(channels // reduction, channels, kernel_size=1, padding=0),
-                nn.Sigmoid()
-            )
+            nn.AdaptiveAvgPool2d(output_size=1),
+            nn.Conv2d(channels, channels // reduction, kernel_size=1, padding=0),
+            act_layer,
+            nn.Conv2d(channels // reduction, channels, kernel_size=1, padding=0),
+            nn.Sigmoid()
+        )
 
     def forward(self, x):
-        #channel wise
+        # channel wise
         ca_map = self.cnet(x)
         x = x * ca_map
         return x
@@ -106,15 +67,15 @@ class SpatialAtt(nn.Module):
     def __init__(self, channels, reduction=4):
         super(SpatialAtt, self).__init__()
         self.snet = nn.Sequential(
-                conv3x3(channels, 4, stride=1, dilation=1),
-                nn.BatchNorm2d(4),
-                act_layer,
-                conv3x3(4, 1, stride=1, dilation=1, bias=True),
-                nn.Sigmoid()
-            )
+            conv3x3(channels, 4, stride=1, dilation=1),
+            nn.BatchNorm2d(4),
+            act_layer,
+            conv3x3(4, 1, stride=1, dilation=1, bias=True),
+            nn.Sigmoid()
+        )
 
     def forward(self, x):
-        #spatial wise
+        # spatial wise
         sa_map = self.snet(x)
         x = x * sa_map
         return x
@@ -127,7 +88,7 @@ class CSAtt(nn.Module):
         self.spatial_att = SpatialAtt(channels, reduction)
 
     def forward(self, x):
-        #channel wise
+        # channel wise
         x1 = self.channel_att(x)
         x2 = self.spatial_att(x1)
         return x2
@@ -137,12 +98,12 @@ class BasicBlock(nn.Module):
     def __init__(self, inplanes, reduction=1, dilation=1, use_att=True):
         super(BasicBlock, self).__init__()
         self.layer = nn.Sequential(
-                    conv3x3(in_planes=inplanes, out_planes=inplanes // reduction, stride=1, dilation=1),
-                    nn.BatchNorm2d(inplanes // reduction),
-                    act_layer,
-                    conv3x3(in_planes=inplanes // reduction, out_planes=inplanes, stride=1, dilation=dilation),
-                    nn.BatchNorm2d(inplanes)
-                )
+            conv3x3(in_planes=inplanes, out_planes=inplanes // reduction, stride=1, dilation=1),
+            nn.BatchNorm2d(inplanes // reduction),
+            act_layer,
+            conv3x3(in_planes=inplanes // reduction, out_planes=inplanes, stride=1, dilation=dilation),
+            nn.BatchNorm2d(inplanes)
+        )
 
         self.use_att = use_att
         if self.use_att:
@@ -163,12 +124,12 @@ class BasicBlockv2(nn.Module):
     def __init__(self, inplanes, reduction=1, dilation=1, use_att=True):
         super(BasicBlockv2, self).__init__()
         self.layer = nn.Sequential(
-                    conv3x3(in_planes=inplanes, out_planes=inplanes // reduction, stride=1, dilation=1),
-                    nn.BatchNorm2d(inplanes // reduction),
-                    act_layer,
-                    conv3x3(in_planes=inplanes // reduction, out_planes=inplanes, stride=1, dilation=dilation),
-                    nn.BatchNorm2d(inplanes)
-                )
+            conv3x3(in_planes=inplanes, out_planes=inplanes // reduction, stride=1, dilation=1),
+            nn.BatchNorm2d(inplanes // reduction),
+            act_layer,
+            conv3x3(in_planes=inplanes // reduction, out_planes=inplanes, stride=1, dilation=dilation),
+            nn.BatchNorm2d(inplanes)
+        )
 
         self.use_att = use_att
         if self.use_att:
@@ -189,7 +150,7 @@ class PredBranch(nn.Module):
     def __init__(self, cin, cout):
         super(PredBranch, self).__init__()
         self.pred_layer = nn.Sequential(nn.Conv2d(cin, cout, kernel_size=1, stride=1, padding=0, dilation=1))
-    
+
     def forward(self, x):
         x1 = F.dropout(x, p=0.2, training=self.training, inplace=False)
         pred = self.pred_layer(x1)
@@ -202,29 +163,29 @@ class PointNet(nn.Module):
         self.layer = None
         if pre_bn and post_act:
             self.layer = nn.Sequential(
-                        nn.BatchNorm2d(cin),
-                        nn.Conv2d(cin, cout, kernel_size=1, stride=1, padding=0, dilation=1, bias=False),
-                        nn.BatchNorm2d(cout),
-                        act_layer
-                    )
+                nn.BatchNorm2d(cin),
+                nn.Conv2d(cin, cout, kernel_size=1, stride=1, padding=0, dilation=1, bias=False),
+                nn.BatchNorm2d(cout),
+                act_layer
+            )
         elif (not pre_bn) and post_act:
             self.layer = nn.Sequential(
-                            nn.Conv2d(cin, cout, kernel_size=1, stride=1, padding=0, dilation=1, bias=False),
-                            nn.BatchNorm2d(cout),
-                            act_layer
-                        )
+                nn.Conv2d(cin, cout, kernel_size=1, stride=1, padding=0, dilation=1, bias=False),
+                nn.BatchNorm2d(cout),
+                act_layer
+            )
         elif pre_bn and (not post_act):
             self.layer = nn.Sequential(
-                            nn.BatchNorm2d(cin),
-                            nn.Conv2d(cin, cout, kernel_size=1, stride=1, padding=0, dilation=1, bias=False),
-                            nn.BatchNorm2d(cout)
-                        )
+                nn.BatchNorm2d(cin),
+                nn.Conv2d(cin, cout, kernel_size=1, stride=1, padding=0, dilation=1, bias=False),
+                nn.BatchNorm2d(cout)
+            )
         elif (not pre_bn) and (not post_act):
             self.layer = nn.Sequential(
-                            nn.Conv2d(cin, cout, kernel_size=1, stride=1, padding=0, dilation=1, bias=False),
-                            nn.BatchNorm2d(cout)
-                        )
-    
+                nn.Conv2d(cin, cout, kernel_size=1, stride=1, padding=0, dilation=1, bias=False),
+                nn.BatchNorm2d(cout)
+            )
+
     def forward(self, x):
         x_feat = self.layer(x)
         return x_feat
@@ -240,11 +201,11 @@ class PointNetStacker(nn.Module):
             layers = [PointNet(cin=cin, cout=cout, pre_bn=pre_bn, post_act=True)]
             for i in range(1, stack_num - 1):
                 layers.append(PointNet(cin=cout, cout=cout, pre_bn=False, post_act=True))
-            
+
             layers.append(PointNet(cin=cout, cout=cout, pre_bn=False, post_act=post_act))
-        
+
         self.layer = nn.Sequential(*layers)
-    
+
     def forward(self, x):
         x_feat = self.layer(x)
         return x_feat
@@ -262,80 +223,52 @@ class BranchAttFusion(nn.Module):
         self.feat_model = nn.ModuleList()
         for i, in_channel in enumerate(self.in_channel_list):
             self.feat_model.append(PointNet(cin=in_channel, cout=out_channel, pre_bn=False))
-    
+
     def forward(self, *x_list):
-        #pdb.set_trace()
+        # pdb.set_trace()
         weights = F.softmax(self.weights, dim=0)
         x_out = self.feat_model[0](x_list[0]) * weights[0]
         for i in range(1, len(x_list)):
             x_out = x_out + self.feat_model[i](x_list[i]) * weights[i]
-        
         return x_out
 
 
-class CatFusion(nn.Module):
-    def __init__(self, in_channel_list, out_channel):
-        super(CatFusion, self).__init__()
+class MLPFusion(nn.Module):
+    def __init__(self, in_channel_list, out_channel, way='Cat'):
+        super(MLPFusion, self).__init__()
         self.in_channel_list = in_channel_list
         self.out_channel = out_channel
-
+        self.way = way
         assert len(self.in_channel_list) >= 2
-
-        s = 0
-        for in_channel in self.in_channel_list:
-            s = s + in_channel
+        if self.way == "Cat":
+            s = 0
+            for in_channel in self.in_channel_list:
+                s = s + in_channel
+            mid = s // 2
+        elif self.way == "Add":
+            s = self.in_channel_list[0]
+            mid = s
+        else:
+            raise NotImplementedError("Not supported fusion way")
 
         self.merge_layer = nn.Sequential(
-            nn.Conv2d(s, s // 2, kernel_size=1, stride=1, padding=0, bias=False),
-            nn.BatchNorm2d(s // 2),
+            nn.Conv2d(s, mid, kernel_size=1, stride=1, padding=0, bias=False),
+            nn.BatchNorm2d(mid),
             act_layer,
-            nn.Conv2d(s // 2, out_channel, kernel_size=1, stride=1, padding=0, bias=False),
+            nn.Conv2d(mid, out_channel, kernel_size=1, stride=1, padding=0, bias=False),
             nn.BatchNorm2d(out_channel),
             act_layer
         )
-    
+
     def forward(self, *x_list):
-        #pdb.set_trace()
-        x_merge = torch.cat(x_list, dim=1)
+        if self.way == "Cat":
+            x_merge = torch.cat(x_list, dim=1)
+        elif self.way == "Add":
+            # x_merge = torch.stack(x_list, dim=1).sum(dim=1)
+            point_feat, bev_feature, rv_feature = x_list[0], x_list[1], x_list[2]
+            x_merge = point_feat + bev_feature + rv_feature
         x_merge = F.dropout(x_merge, p=0.2, training=self.training, inplace=False)
         x_out = self.merge_layer(x_merge)
-        return x_out
-
-
-class PointAttFusion(nn.Module):
-    def __init__(self, in_channel_list, out_channel):
-        super(PointAttFusion, self).__init__()
-        self.in_channel_list = in_channel_list
-        self.out_channel = out_channel
-
-        assert len(self.in_channel_list) >= 2
-
-        self.att_layer = nn.Sequential(
-            nn.Conv2d(len(self.in_channel_list) * out_channel, out_channel, kernel_size=1, padding=0, bias=False),
-            nn.BatchNorm2d(out_channel),
-            act_layer,
-            nn.Conv2d(out_channel, len(self.in_channel_list), kernel_size=1, padding=0)
-        )
-
-        # make feature layer
-        self.feat_model = nn.ModuleList()
-        for i, in_channel in enumerate(self.in_channel_list):
-            self.feat_model.append(PointNet(cin=in_channel, cout=out_channel, pre_bn=False))
-    
-    def forward(self, *x_list):
-        #pdb.set_trace()
-        batch_size = x_list[0].shape[0]
-
-        x_feat_list = [self.feat_model[i](x_list[i]) for i in range(len(x_list))]
-
-        x_merge = torch.stack(x_feat_list, dim=1) #(BS, S, channels, N, 1)
-        x_merge = F.dropout(x_merge, p=0.2, training=self.training, inplace=False)
-
-        ca_map = self.att_layer(x_merge.view(batch_size, len(self.in_channel_list)*self.out_channel, -1, 1))
-        ca_map = ca_map.view(batch_size, len(self.in_channel_list), 1, -1, 1) #(BS, S, 1, N, 1)
-        ca_map = F.softmax(ca_map, dim=1) #(BS, S, 1, N, 1)
-
-        x_out = (x_merge * ca_map).sum(dim=1) #(BS, channels, N, 1)
         return x_out
 
 
@@ -343,7 +276,7 @@ class BilinearSample(nn.Module):
     def __init__(self, in_dim, scale_rate):
         super(BilinearSample, self).__init__()
         self.scale_rate = scale_rate
-    
+
     def forward(self, grid_feat, grid_coord):
         '''
         Input:
@@ -355,9 +288,10 @@ class BilinearSample(nn.Module):
         H = grid_feat.shape[2]
         W = grid_feat.shape[3]
 
-        grid_sample_x = (2 * grid_coord[:, :, 1] * self.scale_rate[1] / (W - 1)) - 1 #(BS, N, S)
-        grid_sample_y = (2 * grid_coord[:, :, 0] * self.scale_rate[0] / (H - 1)) - 1 #(BS, N, S)
+        grid_sample_x = (2 * grid_coord[:, :, 1] * self.scale_rate[1] / (W - 1)) - 1  # (BS, N, S)
+        grid_sample_y = (2 * grid_coord[:, :, 0] * self.scale_rate[0] / (H - 1)) - 1  # (BS, N, S)
 
-        grid_sample_2 = torch.stack((grid_sample_x, grid_sample_y), dim=-1) #(BS, N, S, 2)
-        pc_feat = F.grid_sample(grid_feat, grid_sample_2, mode='bilinear', padding_mode='zeros', align_corners=True) #(BS, C, N, S)
+        grid_sample_2 = torch.stack((grid_sample_x, grid_sample_y), dim=-1)  # (BS, N, S, 2)
+        pc_feat = F.grid_sample(grid_feat, grid_sample_2, mode='bilinear', padding_mode='zeros',
+                                align_corners=True)  # (BS, C, N, S)
         return pc_feat

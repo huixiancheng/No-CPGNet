@@ -29,10 +29,10 @@ def val_fp16(epoch, model, val_loader, category_list, save_path, rank=0):
     model.eval()
     f = open(os.path.join(save_path, 'record_fp16_{}.txt'.format(rank)), 'a')
     with torch.no_grad():
-        for i, (pcds_xyzi, pcds_coord, pcds_sphere_coord, pcds_target, valid_mask_list, pad_length_list) in tqdm.tqdm(enumerate(val_loader)):
+        for i, (pcds_xyzi, pcds_coord, pcds_sphere_coord, pcds_target, fname_pcd) in tqdm.tqdm(enumerate(val_loader)):
             with torch.cuda.amp.autocast():
-                pred_cls = model.infer(pcds_xyzi.squeeze(0).cuda(), pcds_coord.squeeze(0).cuda(), pcds_sphere_coord.squeeze(0).cuda())
-                # pred_cls = model.infer(pcds_xyzi.cuda(), pcds_coord.cuda(), pcds_sphere_coord.cuda())
+                # pred_cls = model.infer(pcds_xyzi.squeeze(0).cuda(), pcds_coord.squeeze(0).cuda(), pcds_sphere_coord.squeeze(0).cuda())
+                pred_cls = model.infer(pcds_xyzi.cuda(), pcds_coord.cuda(), pcds_sphere_coord.cuda())
             pred_cls = F.softmax(pred_cls, dim=1)
             pred_cls = pred_cls.mean(dim=0).permute(2, 1, 0).squeeze(0).contiguous()
             pcds_target = pcds_target[0, :, 0].contiguous()
@@ -56,9 +56,9 @@ def val(epoch, model, val_loader, category_list, save_path, rank=0):
     model.eval()
     f = open(os.path.join(save_path, 'record_{}.txt'.format(rank)), 'a')
     with torch.no_grad():
-        for i, (pcds_xyzi, pcds_coord, pcds_sphere_coord, pcds_target, valid_mask_list, pad_length_list) in tqdm.tqdm(enumerate(val_loader)):
-            pred_cls = model.infer(pcds_xyzi.squeeze(0).cuda(), pcds_coord.squeeze(0).cuda(), pcds_sphere_coord.squeeze(0).cuda())
-            # pred_cls = model.infer(pcds_xyzi.cuda(), pcds_coord.cuda(),pcds_sphere_coord.cuda())
+        for i, (pcds_xyzi, pcds_coord, pcds_sphere_coord, pcds_target, fname_pcd) in tqdm.tqdm(enumerate(val_loader)):
+            # pred_cls = model.infer(pcds_xyzi.squeeze(0).cuda(), pcds_coord.squeeze(0).cuda(), pcds_sphere_coord.squeeze(0).cuda())
+            pred_cls = model.infer(pcds_xyzi.cuda(), pcds_coord.cuda(),pcds_sphere_coord.cuda())
             
             pred_cls = F.softmax(pred_cls, dim=1)
             pred_cls = pred_cls.mean(dim=0).permute(2, 1, 0).squeeze(0).contiguous()
@@ -91,6 +91,13 @@ def main(args, config):
     world_size = torch.distributed.get_world_size()
     rank = torch.distributed.get_rank()
 
+    # reset random seed
+    seed = rank * pDataset.Val.num_workers + 50051
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+
     # define dataloader
     val_dataset = eval('datasets.{}.DataloadVal'.format(pDataset.Val.data_src))(pDataset.Val)
     val_loader = DataLoader(val_dataset,
@@ -108,7 +115,10 @@ def main(args, config):
     for epoch in range(args.start_epoch, args.end_epoch + 1, world_size):
         if (epoch + rank) < (args.end_epoch + 1):
             pretrain_model = os.path.join(model_prefix, '{}-model.pth'.format(epoch + rank))
-            model.load_state_dict(torch.load(pretrain_model, map_location='cpu'))
+            print(pretrain_model)
+            checkpoint = torch.load(pretrain_model, map_location='cpu')
+            model.load_state_dict(checkpoint['model_state_dict'], strict=True)
+            # model.load_state_dict(torch.load(pretrain_model, map_location='cpu'))
             if pGen.fp16:
                 val_fp16(epoch + rank, model, val_loader, pGen.category_list, save_path, rank)
             else:
@@ -129,11 +139,11 @@ def seed_torch(seed=1024):
 if __name__ == '__main__':
     seed_torch(seed=520)
     parser = argparse.ArgumentParser(description='lidar segmentation')
-    parser.add_argument('--config', help='config file path', default='config/ohem.py', type=str)
+    parser.add_argument('--config', help='config file path', default='config/wce.py', type=str)
     parser.add_argument('--local_rank', type=int, default=0)
 
     parser.add_argument('--start_epoch', type=int, default=0)
-    parser.add_argument('--end_epoch', type=int, default=48)
+    parser.add_argument('--end_epoch', type=int, default=49)
     
     args = parser.parse_args()
     config = importlib.import_module(args.config.replace('.py', '').replace('/', '.'))

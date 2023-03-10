@@ -17,17 +17,15 @@ def parsing(line):
     return results_dic
 
 
-def main(args, config):
+def main(args, name):
     # parsing cfg
-    pGen, pDataset, pModel, pOpt = config.get_config()
-    
-    prefix = pGen.name
+    prefix = name
     save_path = os.path.join("experiments", prefix)
     model_prefix = os.path.join(save_path, "checkpoint")
 
     # set keywords
     fname_record_list = [os.path.join(save_path, x) for x in os.listdir(save_path) if x.startswith('record_')]
-    
+
     key = 'mean iou'
 
     max_epoch = 0
@@ -39,13 +37,13 @@ def main(args, config):
                 if max_metric < line_dic[key]:
                     max_metric = line_dic[key]
                     max_epoch = line_dic['Epoch']
-    
+
     print('Best Epoch: ', max_epoch, 'Best Metric: ', max_metric)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='lidar segmentation')
-    parser.add_argument('--config', help='config file path', default='config/ohem.py', type=str)
+    parser.add_argument('--config', help='config file path', default='wce', type=str)
     
     args = parser.parse_args()
     config = importlib.import_module(args.config.replace('.py', '').replace('/', '.'))

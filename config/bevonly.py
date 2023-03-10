@@ -9,7 +9,7 @@ def get_config():
                       "other-vehicle", "person", "bicyclist", "motorcyclist", "road",
                       "parking", "sidewalk", "other-ground", "building", "fence",
                       "vegetation", "trunk", "terrain", "pole", "traffic-sign"]
-        loss_mode = 'ohem'
+        loss_mode = 'wce'
         class Voxel:
             RV_theta = (-25.0, 3.0)
             range_x = (-50.0, 50.0)
@@ -38,9 +38,9 @@ def get_config():
                 size_range = (0.95, 1.05)
 
         class Val:
-            data_src = 'data_pad'
+            data_src = 'data'
             num_workers = 8
-            frame_point_num = 160000
+            frame_point_num = 130000
             SeqDir = General.SeqDir
             Voxel = General.Voxel
 
@@ -52,7 +52,8 @@ def get_config():
         loss_mode = General.loss_mode
 
         point_feat_out_channels = 64
-        fusion_mode = 'CatFusion'
+        fusion_mode = 'MLPFusion'
+        fusion_way = 'Cat'
 
         class BEVParam:
             base_block = 'BasicBlock'

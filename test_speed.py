@@ -41,12 +41,18 @@ def main(args, config):
     model.eval()
     model.cuda()
 
-    pcds_xyzi, pcds_coord, pcds_sphere_coord, pcds_target, valid_mask_list, pad_length_list, meta_list_raw = val_loader.next()
+    pytorch_total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print("Number of parameters: {} ".format(pytorch_total_params / 1000000) + "M")
 
-    pcds_xyzi = pcds_xyzi[0, [0]].contiguous().cuda()
-    pcds_coord = pcds_coord[0, [0]].contiguous().cuda()
-    pcds_sphere_coord = pcds_sphere_coord[0, [0]].contiguous().cuda()
-    pdb.set_trace()
+    pcds_xyzi, pcds_coord, pcds_sphere_coord, pcds_target, _ = val_loader.next()
+
+    # pcds_xyzi = pcds_xyzi[0, [0]].contiguous().cuda()
+    # pcds_coord = pcds_coord[0, [0]].contiguous().cuda()
+    # pcds_sphere_coord = pcds_sphere_coord[0, [0]].contiguous().cuda()
+    pcds_xyzi = pcds_xyzi.contiguous().cuda()
+    pcds_coord = pcds_coord.contiguous().cuda()
+    pcds_sphere_coord = pcds_sphere_coord.contiguous().cuda()
+    # pdb.set_trace()
 
     time_cost = []
     with torch.no_grad():
@@ -62,7 +68,7 @@ def main(args, config):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='lidar segmentation')
-    parser.add_argument('--config', help='config file path', type=str)
+    parser.add_argument('--config', help='config file path', default='config/wce.py', type=str)
     
     args = parser.parse_args()
     config = importlib.import_module(args.config.replace('.py', '').replace('/', '.'))

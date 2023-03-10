@@ -54,19 +54,20 @@ class DataloadTrain(Dataset):
 
         self.cp_aug = None
         if config.CopyPasteAug.is_use:
-            self.cp_aug = copy_paste.SequenceCutPaste(config.CopyPasteAug.ObjBackDir, config.CopyPasteAug.paste_max_obj_num)
+            self.cp_aug = copy_paste.SequenceCutPaste(config.CopyPasteAug.ObjBackDir,
+                                                      config.CopyPasteAug.paste_max_obj_num)
 
         self.aug = utils.DataAugment(noise_mean=config.AugParam.noise_mean,
-                        noise_std=config.AugParam.noise_std,
-                        theta_range=config.AugParam.theta_range,
-                        shift_range=config.AugParam.shift_range,
-                        size_range=config.AugParam.size_range)
+                                     noise_std=config.AugParam.noise_std,
+                                     theta_range=config.AugParam.theta_range,
+                                     shift_range=config.AugParam.shift_range,
+                                     size_range=config.AugParam.size_range)
 
         self.aug_raw = utils.DataAugment(noise_mean=0,
-                        noise_std=0,
-                        theta_range=(0, 0),
-                        shift_range=((0, 0), (0, 0), (0, 0)),
-                        size_range=(1, 1))
+                                         noise_std=0,
+                                         theta_range=(0, 0),
+                                         shift_range=((0, 0), (0, 0), (0, 0)),
+                                         size_range=(1, 1))
 
         # add training data
         seq_split = [str(i).rjust(2, '0') for i in self.task_cfg['split']['train']]
@@ -75,13 +76,11 @@ class DataloadTrain(Dataset):
             fpath = os.path.join(config.SeqDir, seq_id)
             fpath_pcd = os.path.join(fpath, 'velodyne')
             fpath_label = os.path.join(fpath, 'labels')
-
             fname_calib = os.path.join(fpath, 'calib.txt')
             fname_pose = os.path.join(fpath, 'poses.txt')
 
             calib = utils.parse_calibration(fname_calib)
             poses_list = utils.parse_poses(fname_pose, calib)
-
             for i in range(len(poses_list)):
                 current_pose_inv = np.linalg.inv(poses_list[i])
                 file_id = str(i).rjust(6, '0')
@@ -89,14 +88,15 @@ class DataloadTrain(Dataset):
                 fname_label = os.path.join(fpath_label, '{}.label'.format(file_id))
                 pose_diff = current_pose_inv.dot(poses_list[i])
                 self.flist.append((fname_pcd, fname_label, pose_diff, seq_id, file_id))
+        self.flist = self.flist[0:len(self.flist):4]
         print('Training Samples: ', len(self.flist))
 
     def form_batch(self, pcds_total):
-        #augment pcds
+        # augment pcds
         pcds_total = self.aug(pcds_total)
 
         N = pcds_total.shape[0]
-        #quantize
+        # quantize
         pcds_xyzi = pcds_total[:, :4]
         pcds_coord = utils.Quantize(pcds_xyzi,
                                     range_x=self.Voxel.range_x,
@@ -105,38 +105,11 @@ class DataloadTrain(Dataset):
                                     size=self.Voxel.bev_shape)
 
         pcds_sphere_coord = utils.SphereQuantize(pcds_xyzi,
-                                            phi_range=(-180.0, 180.0),
-                                            theta_range=self.Voxel.RV_theta,
-                                            size=self.Voxel.rv_shape)
+                                                 phi_range=(-180.0, 180.0),
+                                                 theta_range=self.Voxel.RV_theta,
+                                                 size=self.Voxel.rv_shape)
 
-        #convert numpy matrix to pytorch tensor
-        pcds_xyzi = make_point_feat(pcds_xyzi, pcds_coord, pcds_sphere_coord, self.Voxel)
-        pcds_xyzi = torch.FloatTensor(pcds_xyzi.astype(np.float32)).view(N, -1, 1)
-        pcds_xyzi = pcds_xyzi.permute(1, 0, 2).contiguous()
-
-        pcds_coord = torch.FloatTensor(pcds_coord.astype(np.float32)).view(N, -1, 1)
-        pcds_sphere_coord = torch.FloatTensor(pcds_sphere_coord.astype(np.float32)).view(N, -1, 1)
-        return pcds_xyzi, pcds_coord, pcds_sphere_coord
-
-    def form_batch_raw(self, pcds_total):
-        #augment pcds
-        pcds_total = self.aug_raw(pcds_total)
-
-        N = pcds_total.shape[0]
-        #quantize
-        pcds_xyzi = pcds_total[:, :4]
-        pcds_coord = utils.Quantize(pcds_xyzi,
-                                    range_x=self.Voxel.range_x,
-                                    range_y=self.Voxel.range_y,
-                                    range_z=self.Voxel.range_z,
-                                    size=self.Voxel.bev_shape)
-
-        pcds_sphere_coord = utils.SphereQuantize(pcds_xyzi,
-                                            phi_range=(-180.0, 180.0),
-                                            theta_range=self.Voxel.RV_theta,
-                                            size=self.Voxel.rv_shape)
-
-        #convert numpy matrix to pytorch tensor
+        # convert numpy matrix to pytorch tensor
         pcds_xyzi = make_point_feat(pcds_xyzi, pcds_coord, pcds_sphere_coord, self.Voxel)
         pcds_xyzi = torch.FloatTensor(pcds_xyzi.astype(np.float32)).view(N, -1, 1)
         pcds_xyzi = pcds_xyzi.permute(1, 0, 2).contiguous()
@@ -146,16 +119,10 @@ class DataloadTrain(Dataset):
         return pcds_xyzi, pcds_coord, pcds_sphere_coord
 
     def form_seq(self, meta_list):
-        pc_list = []
-        pc_label_list = []
-        pc_raw_label_list = []
-        pc_road_list = []
-
         fname_pcd, fname_label, pose_diff, _, _ = meta_list
         # load pcd
         pcds_tmp = np.fromfile(fname_pcd, dtype=np.float32).reshape((-1, 4))
         pcds_ht = utils.Trans(pcds_tmp, pose_diff)
-        pc_list.append(pcds_ht)
 
         # load label
         pcds_label = np.fromfile(fname_label, dtype=np.uint32)
@@ -163,52 +130,38 @@ class DataloadTrain(Dataset):
         sem_label = pcds_label & 0xFFFF
         inst_label = pcds_label >> 16
 
-        pc_road_list.append(pcds_ht[sem_label == 40])
+        pc_road = pcds_ht[sem_label == 40]
+        pcds_label_use = utils.relabel(sem_label, self.task_cfg['learning_map']).reshape(-1, 1)
 
-        pcds_label_use = utils.relabel(sem_label, self.task_cfg['learning_map'])
-        pc_label_list.append(pcds_label_use)
-        pc_raw_label_list.append(sem_label)
-        return pc_list, pc_label_list, pc_road_list, pc_raw_label_list
+        return pcds_ht, pcds_label_use, pc_road, sem_label
 
     def __getitem__(self, index):
         meta_list = self.flist[index]
-        # load history pcds
-        pc_list = None
-        pc_label_list = None
-        pc_road_list = None
-
-        pc_list, pc_label_list, pc_road_list, pc_raw_label_list = self.form_seq(meta_list)
+        pc, pc_label, pc_road, pc_raw_label = self.form_seq(meta_list)
 
         # copy-paste
         if self.cp_aug is not None:
-            pc_list, pc_label_list = self.cp_aug(pc_list, pc_label_list, pc_road_list, pc_raw_label_list)
+            # copy-paste
+            [pc], [pc_label] = self.cp_aug([pc], [pc_label], [pc_road], [pc_raw_label])
 
         # filter
-        for ht in range(len(pc_list)):
-            valid_mask_ht = utils.filter_pcds_mask(pc_list[ht],
-                                                range_x=self.Voxel.range_x,
-                                                range_y=self.Voxel.range_y,
-                                                range_z=self.Voxel.range_z)
-
-            pc_list[ht] = pc_list[ht][valid_mask_ht]
-            pc_label_list[ht] = pc_label_list[ht][valid_mask_ht]
+        valid_mask_ht = utils.filter_pcds_mask(pc,
+                                               range_x=self.Voxel.range_x,
+                                               range_y=self.Voxel.range_y,
+                                               range_z=self.Voxel.range_z)
+        pc = pc[valid_mask_ht]
+        pc_label = pc_label[valid_mask_ht]
 
         # resample
-        for ht in range(len(pc_list)):
-            choice = np.random.choice(pc_list[ht].shape[0], self.frame_point_num, replace=True)
-            pc_list[ht] = pc_list[ht][choice]
-            pc_label_list[ht] = pc_label_list[ht][choice]
+        choice = np.random.choice(pc.shape[0], self.frame_point_num, replace=True)
+        pc = pc[choice]
+        pc_label = pc_label[choice]
 
-        pc_list = np.concatenate(pc_list, axis=0)
-        pcds_target = torch.LongTensor(pc_label_list[0].astype(np.long)).unsqueeze(-1)
-
+        pcds_target = torch.LongTensor(pc_label.astype(np.long))
         # preprocess
+        pcds_xyzi, pcds_coord, pcds_sphere_coord = self.form_batch(pc.copy())
 
-        pcds_xyzi, pcds_coord, pcds_sphere_coord = self.form_batch(pc_list.copy())
-        pcds_xyzi_raw, pcds_coord_raw, pcds_sphere_coord_raw = self.form_batch_raw(pc_list.copy())
-
-
-        return pcds_xyzi, pcds_coord, pcds_sphere_coord, pcds_target, pcds_xyzi_raw, pcds_coord_raw, pcds_sphere_coord_raw
+        return pcds_xyzi, pcds_coord, pcds_sphere_coord, pcds_target
 
     def __len__(self):
         return len(self.flist)
@@ -249,7 +202,7 @@ class DataloadVal(Dataset):
 
     def form_batch(self, pcds_total):
         N = pcds_total.shape[0]
-        #quantize
+        # quantize
         pcds_xyzi = pcds_total[:, :4]
         pcds_coord = utils.Quantize(pcds_xyzi,
                                     range_x=self.Voxel.range_x,
@@ -258,11 +211,11 @@ class DataloadVal(Dataset):
                                     size=self.Voxel.bev_shape)
 
         pcds_sphere_coord = utils.SphereQuantize(pcds_xyzi,
-                                            phi_range=(-180.0, 180.0),
-                                            theta_range=self.Voxel.RV_theta,
-                                            size=self.Voxel.rv_shape)
+                                                 phi_range=(-180.0, 180.0),
+                                                 theta_range=self.Voxel.RV_theta,
+                                                 size=self.Voxel.rv_shape)
 
-        #convert numpy matrix to pytorch tensor
+        # convert numpy matrix to pytorch tensor
         pcds_xyzi = make_point_feat(pcds_xyzi, pcds_coord, pcds_sphere_coord, self.Voxel)
         pcds_xyzi = torch.FloatTensor(pcds_xyzi.astype(np.float32)).view(N, -1, 1)
         pcds_xyzi = pcds_xyzi.permute(1, 0, 2).contiguous()
@@ -292,15 +245,10 @@ class DataloadVal(Dataset):
         return pcds_xyzi, pcds_coord, pcds_sphere_coord
 
     def form_seq(self, meta_list):
-
-        pc_list = []
-        pc_label_list = []
         fname_pcd, fname_label, pose_diff, _, _ = meta_list
         # load pcd
         pcds_tmp = np.fromfile(fname_pcd, dtype=np.float32).reshape((-1, 4))
         pcds_ht = utils.Trans(pcds_tmp, pose_diff)
-        pc_list.append(pcds_ht)
-
         # load label
         pcds_label = np.fromfile(fname_label, dtype=np.uint32)
         pcds_label = pcds_label.reshape((-1))
@@ -308,44 +256,21 @@ class DataloadVal(Dataset):
         inst_label = pcds_label >> 16
 
         pcds_label_use = utils.relabel(sem_label, self.task_cfg['learning_map'])
-        pc_label_list.append(pcds_label_use)
 
-        return pc_list, pc_label_list
+        return pcds_ht, pcds_label_use, fname_pcd
 
     def __getitem__(self, index):
         meta_list = self.flist[index]
 
         # load history pcds
-        pc_list, pc_label_list = self.form_seq(meta_list)
+        pc, pc_label, fname_pcd = self.form_seq(meta_list)
 
-        valid_mask_list = []
-        # filter
-        for ht in range(len(pc_list)):
-            valid_mask_ht = utils.filter_pcds_mask(pc_list[ht],
-                                                range_x=self.Voxel.range_x,
-                                                range_y=self.Voxel.range_y,
-                                                range_z=self.Voxel.range_z)
-
-            pc_list[ht] = pc_list[ht][valid_mask_ht]
-            pc_label_list[ht] = pc_label_list[ht][valid_mask_ht]
-            valid_mask_list.append(valid_mask_ht)
-
-        pad_length_list = [0 for i in range(len(pc_list))]
-        # resample
-        for ht in range(1, len(pc_list)):
-            choice = np.random.choice(pc_list[ht].shape[0], pc_list[0].shape[0], replace=True)
-            pc_list[ht] = pc_list[ht][choice]
-            pc_label_list[ht] = pc_label_list[ht][choice]
-
-        pc_list = np.concatenate(pc_list, axis=0)
-        pcds_target = torch.LongTensor(pc_label_list[0].astype(np.long)).unsqueeze(-1)
-
-        # preprocess
-        pcds_xyzi, pcds_coord, pcds_sphere_coord = self.form_batch_tta(pc_list.copy())
-        return pcds_xyzi, pcds_coord, pcds_sphere_coord, pcds_target, valid_mask_list, pad_length_list
+        pcds_xyzi, pcds_coord, pcds_sphere_coord = self.form_batch(pc.copy())
+        return pcds_xyzi, pcds_coord, pcds_sphere_coord, pcds_target, fname_pcd
 
     def __len__(self):
         return len(self.flist)
+
 
 if __name__ == "__main__":
     import importlib
@@ -354,16 +279,17 @@ if __name__ == "__main__":
     import tqdm
 
     parser = argparse.ArgumentParser(description='lidar segmentation')
-    parser.add_argument('--config', help='config file path', default='config/config_smvf_sgd_ohem_vfe_k1_fp16_48epoch.py', type=str)
+    parser.add_argument('--config', help='config file path', default='config/wce.py', type=str)
     parser.add_argument('--local_rank', type=int, default=0)
     args = parser.parse_args()
     config = importlib.import_module(args.config.replace('.py', '').replace('/', '.'))
     pGen, pDataset, pModel, pOpt = config.get_config()
     train_dataset = DataloadTrain(pDataset.Train)
     train_loader = DataLoader(train_dataset,
-                            batch_size=pGen.batch_size_per_gpu,
+                            batch_size=1,
                             shuffle=True,
                             num_workers=0,
                             pin_memory=True)
-    for i, (pcds_xyzi, pcds_coord, pcds_sphere_coord, pcds_target, pcds_xyzi_raw, pcds_coord_raw, pcds_sphere_coord_raw) in tqdm.tqdm(enumerate(train_loader)):
-        print(i, pcds_xyzi.shape)
+    for i, (pcds_xyzi, pcds_coord, pcds_sphere_coord, pcds_target) in tqdm.tqdm(enumerate(train_loader)):
+        print(i)
+        exit()

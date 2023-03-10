@@ -7,54 +7,53 @@
 - Here is the official [Repo](https://github.com/GangZhang842/CPGNet).
 
 ## New Fix:
-- Find that the down-sampling and upsampling stages is not same with the paper. I think this will affect performance. 
-- However, changing to the correct setting will result in more GPU memory consumption. (Feature map is twice as big)
-- Also, CosineAnnealingWarmUpRestarts look better than StepLR.
-- Waiting for training results. :sleeping: :zzz:
+- Remove consistency loss due to its large training burden. (~2X GPU memory consumption & ~2X training time boost)
+- CutMiX data augmentation now available.
+- CosineAnnealingWarmUpRestarts look better than StepLR.
+- Now, there is not much performance gap between wce and ohem.
 
 ## Environment Setup
 Please refer to [SMVF](https://github.com/GangZhang842/SMVF) repo. ~~**Note:** Make sure deep_point is installed.~~
 ## Prepare Data
-Download SemanticKITTI from [official web](http://www.semantic-kitti.org/dataset.html).
+Download SemanticKITTI from [official web](http://www.semantic-kitti.org/dataset.html). 
+Download Object_Bank from [SMVF](https://github.com/GangZhang842/SMVF) for CutMix.
 ## Training
 ~~~
 ### Multi-gpus ###
-CUDA_VISIBLE_DEVICES=0,1 python -m torch.distributed.launch --nproc_per_node=2 train.py --config config/ohem.py
+CUDA_VISIBLE_DEVICES=0,1 python -m torch.distributed.launch --nproc_per_node=2 train.py --config config/wce.py
 
 ### Single-gpu ###
-CUDA_VISIBLE_DEVICES=0 python -m torch.distributed.launch --nproc_per_node=1 train.py --config config/ohem.py
+CUDA_VISIBLE_DEVICES=0 python -m torch.distributed.launch --nproc_per_node=1 train.py --config config/wce.py
 ~~~
 
 ## Evaluation
 ~~~
-CUDA_VISIBLE_DEVICES=0 python -m torch.distributed.launch --nproc_per_node=1 evaluate.py --config config/ohem.py --start_epoch 0 --end_epoch 47
+CUDA_VISIBLE_DEVICES=0 python -m torch.distributed.launch --nproc_per_node=1 evaluate.py --config config/wce.py --start_epoch 0 --end_epoch 47
 ~~~
 
 ## Find best epoch
 ~~~
-python find_best_metric.py --config config/ohem.py
+python find_best_metric.py --config wce.py
 ~~~
 
 ## Pretrained Models and Logs
 Models have been uploaded to this [Google Drive folder](https://drive.google.com/drive/folders/18DsT-int3XuNRmQ1W0FkNnZ3PaGRohpn?usp=sharing).
 
-| CPGNet (stage=1) | Loss | Batch_Size * GPUS | mIoU |
+| CPGNet | Loss | Batch_Size * GPUS | mIoU |
 | :---------------: | :---------------: | :---------------: | :---------------: |
-| Our Reproduced | OHEM |      4 * 1 (FP16 on 3090)       |       61.5        |
-| Our Reproduced | OHEM |      6 * 2 (FP16 on 3090)       |       61.5        |
-| Our Reproduced | WCE |      6 * 2 (FP16 on 3090)       |       60.1        |
-| Paper Reported | -- |       ~~2 * 8 (FP32 on 2080ti)~~     |       **62.5**        |
+| Our Reproduced | WCE (stage=1 w/o CutMix) |      6 * 2 (FP16 on 3090)       |       58.6        |
+| Our Reproduced | WCE (stage=1) |      6 * 2 (FP16 on 3090)       |       62.4        |
+| Our Reproduced | WCE (stage=2) |      6 * 2 (FP16 on 3090)       |       64.9        |
+| Paper Reported | WCE (stage=1) |       ~~2 * 8 (FP32 on 2080ti)~~     |       **62.5**        |
+| Paper Reported | WCE (stage=2) |       ~~2 * 8 (FP32 on 2080ti)~~     |       **65.9**        |
 
 **Note:** 
-- The model corresponding to the codebase should be CPGNet (stage=1), which the original paper reported a performance of **62.5**.
-- The performance gap may come from two reasons: 1) The original paper uses a **2 * 8** batch size for training while we use smaller batches. 2). The original paper uses the **CutMix** data-aug, which should correspond to [this part](https://github.com/huixiancheng/No-CPGNet/blob/e161450f6f81d0bed8e03ae59fbcabeb03602458/datasets/data.py#L183-L184) of the codebase. Since I do not yet understand the ops, it is not activated. This also has a performance impact.
+- Our model is trained using 1/4 of the data. See here of code.
+- We did not use TTA, which actually slightly improved performance by about 1.0%.
 
 Below are known issues listed:
-- Training with `OHEM` loss, the loss converges slowly. The situation is similar after switching to `WCE`. 
-- From the validation results (Oscillation at a value), the model seems to be under-fitted.
-- Not sure if the loss of the [BEV part](https://github.com/huixiancheng/No-CPGNet/blob/4e55053f2a883de7aa0158ed3fccb9b5f89c46c8/models/cpgnet.py#L164-L167) is used in CPGNet.
-- During validation, TTA is on by default, so the accuracy will be higher.
-- Maybe I'm missing some other details, welcome to discuss and PR if you find them.
+- Over-fitting on the validation set, the model with 64.9mIoU on the validation set achieved only 61.8mIoU on the CodaLab online test set. (Probably because we only use 1/4 of the data for training)
+
 
 ## Citation
 It should be considered to cite:
