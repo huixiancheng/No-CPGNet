@@ -7,7 +7,7 @@
 - Here is the official [Repo](https://github.com/GangZhang842/CPGNet).
 
 ## New Fix:
-- Remove transformation consistency loss due to its large training burden. (~2X GPU memory consumption & ~2X training time boost)
+- Remove transformation consistency loss due to its large training burden. (~2× GPU consumption & ~2× training time boost)
 - CutMiX data augmentation now available.
 - CosineAnnealingWarmUpRestarts look better than StepLR.
 - Now, there is not much performance gap between wce and ohem.
@@ -28,7 +28,11 @@ CUDA_VISIBLE_DEVICES=0 python -m torch.distributed.launch --nproc_per_node=1 tra
 
 ## Evaluation
 ~~~
-CUDA_VISIBLE_DEVICES=0 python -m torch.distributed.launch --nproc_per_node=1 evaluate.py --config config/wce.py --start_epoch 0 --end_epoch 47
+### Multi-gpus ###
+CUDA_VISIBLE_DEVICES=0,1 python -m torch.distributed.launch --nproc_per_node=2 evaluate.py --config config/wce.py --start_epoch 0 --end_epoch 49
+
+### Single-gpu ###
+CUDA_VISIBLE_DEVICES=0 python -m torch.distributed.launch --nproc_per_node=1 evaluate.py --config config/wce.py --start_epoch 0 --end_epoch 49
 ~~~
 
 ## Find best epoch
