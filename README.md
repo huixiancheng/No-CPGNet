@@ -7,7 +7,7 @@
 - Here is the official [Repo](https://github.com/GangZhang842/CPGNet).
 
 ## New Fix:
-- Remove consistency loss due to its large training burden. (~2X GPU memory consumption & ~2X training time boost)
+- Remove transformation consistency loss due to its large training burden. (~2X GPU memory consumption & ~2X training time boost)
 - CutMiX data augmentation now available.
 - CosineAnnealingWarmUpRestarts look better than StepLR.
 - Now, there is not much performance gap between wce and ohem.
@@ -48,7 +48,7 @@ Models have been uploaded to this [Google Drive folder](https://drive.google.com
 | Paper Reported | WCE (stage=2) |       ~~2 * 8 (FP32 on 2080ti)~~     |       **65.9**        |
 
 **Note:** 
-- Our model is trained using 1/4 of the data. See here of code.
+- Our model is trained using 1/4 of the data. See [here of code](https://github.com/huixiancheng/No-CPGNet/blob/main/datasets/data.py#L91).
 - We did not use TTA, which actually slightly improved performance by about 1.0%.
 
 Below are known issues listed:
