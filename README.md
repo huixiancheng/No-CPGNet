@@ -37,7 +37,7 @@ CUDA_VISIBLE_DEVICES=0 python -m torch.distributed.launch --nproc_per_node=1 eva
 
 ## Find best epoch
 ~~~
-python find_best_metric.py --config wce.py
+python find_best_metric.py --config wce
 ~~~
 
 ## Pretrained Models and Logs

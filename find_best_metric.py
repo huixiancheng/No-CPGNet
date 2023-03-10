@@ -43,8 +43,6 @@ def main(args, name):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='lidar segmentation')
-    parser.add_argument('--config', help='config file path', default='wce', type=str)
-    
+    parser.add_argument('--name', help='file name', default='wce', type=str)
     args = parser.parse_args()
-    config = importlib.import_module(args.config.replace('.py', '').replace('/', '.'))
-    main(args, config)
+    main(args, args.name)
