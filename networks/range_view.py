@@ -85,13 +85,13 @@ class RVNet(nn.Module):
 
         #decoder
         fusion_channels2 = context_layers[3] + context_layers[2]
-        self.up2 = AttMerge(context_layers[2], context_layers[3], fusion_channels2 // 2, scale_factor=(1, 2))
+        self.up2 = AttMerge(context_layers[2], context_layers[3], fusion_channels2 // 2, scale_factor=2)
         
         fusion_channels1 = fusion_channels2 // 2 + context_layers[1]
         self.up1 = AttMerge(context_layers[1], fusion_channels2 // 2, fusion_channels1 // 2, scale_factor=2)
 
         # fusion_channels0 = fusion_channels1 // 2 + context_layers[0]
-        # self.up0 = AttMerge(context_layers[0], fusion_channels1 // 2, fusion_channels0 // 2, scale_factor=2)
+        # self.up0 = AttMerge(context_layers[0], fusion_channels1 // 2, fusion_channels0 // 2, scale_factor=(1, 2))
 
         self.out_channels = fusion_channels1 // 2
     
