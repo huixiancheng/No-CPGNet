@@ -90,8 +90,8 @@ class BEVNet(nn.Module):
         fusion_channels1 = fusion_channels2 // 2 + context_layers[1]
         self.up1 = AttMerge(context_layers[1], fusion_channels2 // 2, fusion_channels1 // 2, scale_factor=2)
 
-        fusion_channels0 = fusion_channels1 // 2 + context_layers[0]
-        self.up0 = AttMerge(context_layers[0], fusion_channels1 // 2, fusion_channels0 // 2, scale_factor=2)
+        # fusion_channels0 = fusion_channels1 // 2 + context_layers[0]
+        # self.up0 = AttMerge(context_layers[0], fusion_channels1 // 2, fusion_channels0 // 2, scale_factor=2)
 
         self.out_channels = fusion_channels1 // 2
     
@@ -115,5 +115,5 @@ class BEVNet(nn.Module):
         #decoder
         x_merge1 = self.up2(x1, x2)
         x_merge0 = self.up1(x0, x_merge1)
-        x_merge = self.up0(x, x_merge0)
-        return x_merge
+        # x_merge = self.up0(x, x_merge0)
+        return x_merge0
