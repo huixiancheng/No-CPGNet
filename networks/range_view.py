@@ -80,8 +80,8 @@ class RVNet(nn.Module):
         super(RVNet, self).__init__()
         #encoder
         self.header = self._make_layer(eval('backbone.{}'.format(base_block)), context_layers[0], context_layers[1], layers[0], stride=(1, 2), dilation=1, use_att=use_att)
-        self.res1 = self._make_layer(eval('backbone.{}'.format(base_block)), context_layers[1], context_layers[2], layers[1], stride=(1, 2), dilation=1, use_att=use_att)
-        self.res2 = self._make_layer(eval('backbone.{}'.format(base_block)), context_layers[2], context_layers[3], layers[2], stride=(1, 2), dilation=1, use_att=use_att)
+        self.res1 = self._make_layer(eval('backbone.{}'.format(base_block)), context_layers[1], context_layers[2], layers[1], stride=2, dilation=1, use_att=use_att)
+        self.res2 = self._make_layer(eval('backbone.{}'.format(base_block)), context_layers[2], context_layers[3], layers[2], stride=2, dilation=1, use_att=use_att)
 
         #decoder
         fusion_channels2 = context_layers[3] + context_layers[2]
