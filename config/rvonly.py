@@ -59,7 +59,7 @@ def get_config():
             base_block = 'BasicBlock'
             context_layers = [64, 32, 64, 128]
             layers = [2, 3, 4]
-            rv_grid2point = dict(type='BilinearSample', scale_rate=(1.0, 1.0))
+            rv_grid2point = dict(type='BilinearSample', scale_rate=(1.0, 0.5))
 
         class pretrain:
             pretrain_epoch = 52
